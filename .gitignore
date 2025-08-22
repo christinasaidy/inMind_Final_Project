@@ -1,0 +1,13 @@
+# secrets
+ui/credentials.json
+adk_agent/.env
+.env
+*.env
+
+# models / big artifacts
+fine_tuned_model/my_nl2sql_lora/
+*.safetensors
+
+# python noise
+__pycache__/
+*.pyc
