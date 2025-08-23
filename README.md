@@ -34,7 +34,7 @@ All these agents use gemini flash models for simplicity of tasks.
 
 ### Challenges with implementing the Complex Langgraph
 
-All of the nodes when done executing go back to the router agent to make the next decision. This was the main challenge in my implementation. The first step towards achieving this was forcing the model to adhere to a specific output shape using  `llm_with_structured_output(RouteDecision)`. This decision class tells the model that it has pick a next node to route to, and explain why (explanantion mainly for debugging). Also it has the respoonsibility to extract important info from user's input like receipt_uri or the rag question. After that, it was easy to update the states according to the the llm's structured ouput. For example the next state would be: `state["next"] = decision.next` (decision being the structured llm output)
+All of the nodes when done executing go back to the router agent to make the next decision. This was the main challenge in my implementation. The first step towards achieving this was forcing the model to adhere to a specific output shape using  `llm_with_structured_output(RouteDecision)`. This decision class tells the model that it has to pick a next node to route to, and explain why (explanantion mainly for debugging). Also it has the respoonsibility to extract important info from user's input like receipt_uri or the rag question. After that, it was easy to update the states according to the the llm's structured ouput. For example the next state would be: `state["next"] = decision.next` (decision being the structured llm output)
 
 The next step towards making sure the model would route correctly was passing it a summary of the current states so its able to better make decisions.
 
