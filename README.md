@@ -3,13 +3,13 @@
 Smart Receipt Assistant is a multi-agent system designed to extract, normalize, store and query information from retail receipts.  It combines an orchestrator (Complex LangGraph) with a remote A2A agent (ADK Agent) 
 to perform OCR on receipt images, convert currencies, translate text and provide relevant information from external knowledge bases. The project also exposes a FastAPI backend and a Gradio front-end for end-user interaction.
 
-# Complex Langgraph 
+# Complex Langgraph (graph.py)
 
 The complex langgraph orchestrates  different agents via a connected graph structure 
 
 ![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/graph.png)
 
-- OCR AGENT: This node is the remote A2A agent that extracts text from receipt images. [Implementation](#ADK-OCR-Agent-+-A2A)
+- OCR AGENT: This node is the remote A2A agent that extracts text from receipt images. 
   
 - NORMALIZE AGENT: Takes the extracted receipt text. This agent has the responsibility to extract important information from the text like category, date, and transforms the text into JSON format that matches the database schema. This is achieved by using `llm_with_structured_output()` with a predefined class to make sure th model is outputting the correct shape. This agent needs to infer two schemas: receipts & receipt items
 
@@ -50,6 +50,9 @@ An initial problem with my graph implementation was using  the `goto command` in
 In my nodes you can also see different methods i tried for tool integration. The store agent, manually invokes each tool call made by the model. It loops over each tool name and manually adds a `ToolMessage`. In the rag node, i explored langgraphs built in `ToolNode` that also invokes the tools using a loop, it defines `ToolMessage` for you . In the query agent, i tried the built in `create_react_agent` that automatatically does tool calls without doing anything manually. All three methods work the same and effectively.
 
 
+### Incomplete Task in Graph:
+I failed to to figure out how to execute parralel nodes together. For example, the user asked a question that can trigger both my RAG agent and Query agent "How much did i spend on milk and how much is the price of milk in beirut". 
+
 # ADK OCR Agent + A2A:
 
 The **ADK Agent** lives outside the Complex LangGraph and communicates via the **A2A protocol**.  
@@ -69,15 +72,130 @@ Implement A2A and exposing this agent as a remote agent was pretty straight forw
 - Defining the *Agent SKills* and *Agent Cards* that define what the agent can do and where the agent is available. It exposes a an endpoint for the agent revieling all the important information about it.
 - Running a server for this Agent with `A2AStarletteApplication`
 - Defining a client class in the complex langgraph that is responsible for sending messages and communicating with the remote A2A agent.
+  
+The server must be started **before any OCR requests** are made.
 
-It server must be started **before any OCR requests** are made.
+PS : I was introduced to alot of async errors while working with A2A. Some of which were solved asking chatgpt vs trial and error. 
+
 
 # MCP Servers 
 
-In my complex langgraph, three mcp servers were defined with unqiue tools for Query Agent, Store Agent, RAG agent. 
+In my complex langgraph, three mcp servers were defined with unqiue tools for Query Agent & Store Agent & RAG agent. 
+They are built using `FastMCP` and run on the `streamable-http` transport.
+To bring them all together in my complex langgraph, i used the `MultiServerMCPClient()` from `langchain_mcp_adapters.client` that holds all my server urls.
+
+In my ADK agent, one mcp server was defined for the agent, it also utilizes `FastMCP` and runs on the `streamable-http` transport.
+To connect this server with my agent, i used `StreamableHTTPConnectionParams` froom google adk's mcp toolkit
+
+# Retrieval Augmented Generated
+
+My project implements two types of retrieval augmented generation. 
+
+### Article Based RAG
+
+- I gathered a few articles that depict Lebanon's Economy and Inflation Rates. These articles were loaded using `trafilatura`  and `bs4.BeautifulSoup` for wiki articles. 
+- I prepped the loaded documents with their own MetaData.
+- A few chunking techniques were tried, Recursive Text Splitting, Semantic Splitting, Regular Text Splitter, and Spacy Text Splitter. I personally found Spacy to be the most accurate in splitting sentences and overall coherence so that - - was the chunking method i went with.
+- For embeddings, the comptetion was between `OpenAIEmbeddings(model="text-embedding-3-large")` and HuggingFace's  `SentenceTransformer("all-MiniLM-L6-v2")`, i went with OpenAi's embeddings for its better semantic capabiliites.
+- For Vector databases, i tried FAISS and InMemoryVectoreStore. I couldn't point out any noteable differences between the two probably because of the small data.  In the end, I went with FAISS. 
+
+#### LLM As A Judge 
+
+This evaluates my article based rag by comparing Gemini’s answers with Gemini + vectorstore answers, and scoring them using Mistral on context relevance, answer relevance, and groundedness. Chatgpt was asked to generate 5 questions based on my articles. With each question, the judge provided its ruling. The overall relevance and evaluation was fine. I would personally next time try adding more data to get better results and richer answers.
+
+### SQL Based RAG
+
+My second Rag implementation takes two Excel Sheets that contain info about Lebanese product/produce price and general living expenses grouped by categories. These two sheets are stored into separate tables in an SQLite Database. 
+This is very simply achieved by using pandas's `.to_sql()` that takes Dataframes (the excel sheets) and stores them in an SQL db.
+This Implementation is also the exact same implementation of my Query Agent in my langgraph. The agent utilizes Langchain's tool kit:  `from langchain_community.tools.sql_database.tool import (
+    InfoSQLDatabaseTool,
+    ListSQLDatabaseTool,
+    QuerySQLDataBaseTool,
+)` 
+
+The agent is also instructed similary to the query agent with a lengthy prompt detailing do's/do nots. It now effectively answers user related questions to prices.
+
+# Fine Tuning 
+
+When i was facing issues with the query agent, i thought to try to fine tune a model that better understands NLP to SQL. Which is why i attempted to fine tune the Qwen2.5-1.5B model using *UnSloth + Lora Adapters*.
+The chosen dataset was dataset from kaggle with thousands of examples about what an SQL query would look like extracted from normal language. [Kaggle Dataset](https://www.kaggle.com/datasets/mohammadnouralawad/spider-text-sql)  
+Training was on google collab following this tutorial [Notebook](https://colab.research.google.com/github/unslothai/notebooks/blob/main/nb/Qwen2.5_(7B)-Alpaca.ipynb#scrollTo=LjY75GoYUCB8)
+The process was fast and easy with google collab's gpu and Unsloth's quick training.  
+The issues followed when i began to implement this fine tuned model as an agent. I tried to bind it with tools using `llm_bind_tools()` and i gave it instructions to use the SQL Tool kit to search through my database and execute queries. This entire attempt failed as the model didnt bind with the tools and never called them.
+
+# FastAPI 
+
+The **FastAPI** backend exposes a `POST /` endpoint. This endpoint invokes my Complex Langgraph
+Users can send either ask direct quesstions or provide a receipt URL.
+
+The second endpoint is `GET /` that gets the last receipt stored in the Database. This was mainly for testing purposes and too see wether the Agents were working correctly.
+
+![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(70).png)
+
+#### Working Demos: 
+![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(71).png)
+![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(64).png)
+
+# UI
+ This Gradio allows for uploading images, asnwering receipt questions or Lebanon related questions, and chatting with the model. 
+
+ ![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(61).png)
+
+# How to Run The Project 
+
+### Start the  A2A server for ADK Agent
+
+```bash
+cd adk_agent
+
+# Start the agent server
+python __main__.py
+```
+
+### In a second terminal (MCP server for the ADK agent)
 
 
+```bash
+cd adk_agent
 
+# Start the mcp server
+python mcp_server.py
+```
+
+### Start Complex LangGraph MCP Servers
+
+
+```bash
+cd complex_langgraph
+
+# Terminal A – Query Agent
+cd query_agent
+python mcp_server.py
+
+# Terminal B – Store Agent
+cd ../store_agent
+python mcp_server.py
+
+# Terminal C – RAG
+cd ../rag
+python mcp_server.py
+```
+
+### Start the Backend
+The API layer orchestrates the agents and exposes a single POST endpoint for user queries or receipt uploads.
+It should be started in another terminal from the project root.
+
+``` bash
+python -m app.main
+```
+### Start the Gradio UI
+
+Finally, run the Gradio interface to interact with the assistant through a web browser.
+It provides widgets for uploading receipts and asking questions.
+
+``` bash
+python -m ui.gradio_ui
+```
 
 
 
