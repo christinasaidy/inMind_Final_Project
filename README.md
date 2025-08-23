@@ -75,9 +75,9 @@ The **ADK Agent** lives outside the Complex LangGraph and communicates via the *
 
 This agent was built using googles ADK with a prebuilt `llmAgent()`, it has its own mcp server that holds the tools for calling the azure api & the currency api.
 
-Implement A2A and exposing this agent as a remote agent was pretty straight forward. A2A documentations' git repo provides multiple samples of implementing this protocol. The steps taken were:
+Implementing A2A and exposing this agent as a remote agent was pretty straight forward. A2A documentations' git repo provides multiple samples of this protocol. The steps taken were:
 
-- Implmenting the Agent executor class that inherits from an abstract `AgentExecutor` class. This class implements thw two methods resonsible for agent execution: `def invoke()` and and `def cancel()`
+- Implementing the Agent executor class that inherits from an abstract `AgentExecutor` class. This class implements thw two methods resonsible for agent execution: `def invoke()` and and `def cancel()`
 - Defining the *Agent SKills* and *Agent Cards* that define what the agent can do and where the agent is available. It exposes a an endpoint for the agent revieling all the important information about it.
 - Running a server for this Agent with `A2AStarletteApplication`
 - Defining a client class in the complex langgraph that is responsible for sending messages and communicating with the remote A2A agent.
