@@ -110,7 +110,7 @@ My project implements two types of retrieval augmented generation.
 
 #### LLM As A Judge 
 
-This evaluates my article based rag by comparing Gemini’s answers with Gemini + vectorstore answers, and scoring them using Mistral on context relevance, answer relevance, and groundedness. Chatgpt was asked to generate 5 questions based on my articles. With each question, the judge provided its ruling. The overall relevance and evaluation was fine. I would personally next time try adding more data to get better results and richer answers.
+This evaluates my article based rag by comparing Gemini’s answers with Gemini + vectorstore answers, and scoring them using Mistral on context relevance, answer relevance, and groundedness. Chatgpt was asked to generate 5 questions based on my articles. With each question, the judge provided its ruling. The overall evaluation was fine, the ratings of the judge showed decent relevance scored. I would personally next time try adding more data to get better results and richer answers.
 
 ### SQL Based RAG
 
@@ -205,9 +205,17 @@ It provides widgets for uploading receipts and asking questions.
 ``` bash
 python -m ui.gradio_ui
 ```
+#Extras
 
+An intial implementation of this project was architected differently. The OCR Agent, Normalize Agent, Store Agent and Query agent were all remote a2a agents that connect to an adk orchestrator. This demo worked fine, however this idea was scratched to better fit the project requirements of using a complex langgraph  
 
+Intially my mcp servers were loaded using fixed paths with `StdioServerParameters()`. This was later changed by running the servers with a http transport
 
+My evaluation process was basically testing everything i implement step by step. The first step was mcp servers, each tool was tested separetly. The second step is building the agents, all of them were also tested on their specific tasks (which is why most files have a small testing section).
+
+The most time consuming task was the laggraph and getting it to route correctly was a trial and error process of mixing different ideas (goto command vs static edges) and changing states or prompts. 
+
+The OCR ADK agent initially had a translate sub agent with instructions to translate certain receipts. However, the sub agent was never being used by the main agent. This sub agent was scratched and instead the OCR agent now also has the task of translating.
 
 
 
