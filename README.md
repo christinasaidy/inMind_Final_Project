@@ -145,10 +145,14 @@ The second endpoint is `GET /` that gets the last receipt stored in the Database
 ![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(71).png)
 ![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(64).png)
 
+Upon implementing the post endpoint, some environment variables stopped being loaded correctly, hence why some of the tokens are directly passes to the models.
+
 # UI
  This Gradio allows for uploading images, asnwering receipt questions or Lebanon related questions, and chatting with the model. 
 
  ![Alt text](https://github.com/christinasaidy/inMind_Final_Project/blob/new_start/assets/Screenshot%20(61).png)
+
+This gradio ui takes images and stores them on a google cloud bucket. An unsigned url is genrated and passed to the OCR agent
 
 # How to Run The Project 
 
@@ -205,7 +209,7 @@ It provides widgets for uploading receipts and asking questions.
 ``` bash
 python -m ui.gradio_ui
 ```
-#Extras
+# Extras
 
 An intial implementation of this project was architected differently. The OCR Agent, Normalize Agent, Store Agent and Query agent were all remote a2a agents that connect to an adk orchestrator. This demo worked fine, however this idea was scratched to better fit the project requirements of using a complex langgraph  
 
