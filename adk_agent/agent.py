@@ -10,6 +10,7 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.cloud import storage
 from datetime import timedelta
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 
 load_dotenv()
 from google.genai import Client
@@ -44,12 +45,13 @@ def create_ocr_agent() -> LlmAgent:
             "translate the receipt text to english if its not in english."
             "6) uris from google cloud that are long, you will not touch them normalize them or east them examples: https://storage.googleapis.com/receipts_bucket_2023/receipts/1755769423.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=receipt-assitant%40aribnb-468618.iam.gserviceaccount.com%2F20250821%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250821T094400Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&response-content-disposition=inline&response-content-type=image%2Fjpeg&X-Goog-Signature=0a9e27110466bc7ded740acfede1700937a11fc83a525c34b01fd9b94cd1a9b7fecdab6426f466aa5fd0cab224dc20919d658e2eb2b81f13a07057e34d3e0e43e321c9b4a555684fe4fd7f6af0011a54a96e97eca91849b8f4889c6375c5a729470c0256019adfeebb0f0c446131ad46dad6abfc7cdb3046f63db049d7c2c4aabfe8fbdabb0df926b0fd0087035f343939d86dd260925f10f0ca245e0890d2280a720443d08fcf1ef2345946dffd88c45eaeb99107fe8e86d2291e84d1c4ef761269e8bba33adbb70c7a708bca6512700a08fcbb9caccba6e423c880fd4fa2ba933a9dc7429ebfb6d0b8d1d0ab0c942ff0aacdadf137a10390a507ceaf36ad9e"
         ),
-        tools=[MCPToolset(
-            connection_params=StdioConnectionParams(
-                server_params=StdioServerParameters(command='python', args=['./mcp_server.py']),
-                timeout=60
+        tools=[
+            MCPToolset(
+                connection_params=StreamableHTTPConnectionParams(
+                    url="http://127.0.0.1:9003/mcp/"  
+                )
             )
-        )],
+        ],
         # sub_agents=[translate_sub_agent],
     )
 

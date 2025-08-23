@@ -12,14 +12,24 @@ from langchain_community.tools.sql_database.tool import (
     QuerySQLDataBaseTool,
 )
 
+from pathlib import Path
+
 
 os.environ.setdefault("USER_AGENT", "christina-mcp/0.1")
 
 
 load_dotenv()
 
-mcp = FastMCP("langgraph-agent")
-db = SQLDatabase.from_uri("sqlite:///C:/Users/saidy/OneDrive/Desktop/Smart_Receipt_Assistant/complex_langgraph/rag/lebanon_prices.db") 
+mcp = FastMCP("rag-server", host="127.0.0.1", port=9001)
+
+
+
+#load db
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DB_DIR = PROJECT_ROOT / "databases"
+DB_PATH = DB_DIR / "lebanon_prices.db"
+
+db = SQLDatabase.from_uri(f"sqlite:///{DB_PATH}")
 
 
 @mcp.tool()
@@ -51,5 +61,4 @@ def execute_sql(sql_query: str) -> str:
     return QuerySQLDataBaseTool(db=db).invoke(sql_query)
 
 if __name__ == "__main__":
-    mcp.run()
-
+    mcp.run(transport="streamable-http")

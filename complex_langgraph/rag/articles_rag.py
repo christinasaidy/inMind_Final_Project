@@ -21,9 +21,6 @@ load_dotenv()
 
 ##artciles 
 
-# url_1 = "http://today.lorientlejour.com/article/1461192/everything-keeps-getting-more-expensive-price-hikes-in-lebanon-continue.html"
-# downloaded = trafilatura.fetch_url(url_1)
-# article_1 = trafilatura.extract(downloaded)
 
 url_2 = "https://www.anera.org/blog/the-cost-of-living-in-lebanon-in-2024"
 downloaded = trafilatura.fetch_url(url_2)
@@ -40,11 +37,6 @@ article_4 = trafilatura.extract(downloaded)
 url_5 = "https://www.ice.it/it/news/notizie-dal-mondo/287501"
 downloaded = trafilatura.fetch_url(url_5)
 article_5 = trafilatura.extract(downloaded)
-
-# url_7 = "https://today.lorientlejour.com/article/1448783/inflation-hits-16-annually-in-january-monthly-rise-slows-to-11.html#:~:text=Miscellaneous%20goods%20and%20services"
-# downloaded = trafilatura.fetch_url(url_7)
-# article_7 = trafilatura.extract(downloaded)
-
 
 ##wiki page + beautiful soup
 
@@ -127,64 +119,10 @@ docs = [
 
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-# huggingface_embeddings = HuggingFaceEmbeddings(
-#     model_name="sentence-transformers/all-mpnet-base-v2"
-# )
 
 spacy_chunker = SpacyTextSplitter(pipeline="en_core_web_sm",chunk_size=1000)
 spacy_chunks = spacy_chunker.split_documents(docs)
 
 article_vectorstore = FAISS.from_documents(spacy_chunks, embedding=embeddings)
 
-vectorstore = InMemoryVectorStore(embeddings)
-vectorstore.add_documents(spacy_chunks)
 
-
-###other attempts
-
-query = "Does lebanon have inflation"
-results = vectorstore.similarity_search(query, k=2)
-print(results[0].page_content)
-
-
-
-##RECURSIVE CHUNKER PRODUCED meh resulst
-# splitter = RecursiveCharacterTextSplitter(
-#     chunk_size=1000,     
-#     chunk_overlap=50,   
-# )
-
-# chunks = splitter.split_documents(docs)
-
-#Semantic has better results
-# semantic_chunker = SemanticChunker(embeddings, breakpoint_threshold_type="percentile")
-# semantic_chunks = semantic_chunker.split_documents(docs)
-
-
-##plumber failed at capturing the tables in the pdfs
-
-# with pdfplumber.open("april2025_en.pdf") as pdf:
-#     page = pdf.pages[5]   # choose page
-#     table = page.extract_table({
-#         "vertical_strategy": "lines",
-#         "horizontal_strategy": "text",
-#         "snap_tolerance": 3
-#     })
-#     for row in table:
-#         print(row)
-
-########camelot works well with semi structured data like pdfs with tables/images
-
-# gov_file_path = 'https://www.economy.gov.lb/media/14782/april2025_en.pdf'
-# aub_file_path = "https://www.aub.edu.lb/oip/internationals/Documents/Cost-Of-Living-In-Beirut.pdf"
-
-
-# gov_pdf_tables = camelot.read_pdf(gov_file_path, pages="all", flavor="stream")
-
-# aub_pdf_tables = camelot.read_pdf(aub_file_path, pages="all", flavor="stream")
-
-
-# gov_ppf_tables = gov_pdf_tables[2:] ####drop first two, camelot stream tends too put everything as a table
-# aub_pdf_tables = aub_pdf_tables[2:] #####drop because it also picked up text as tables for the first two tables
-
-# pdf = OnlinePDFLoader("https://www.aub.edu.lb/oip/internationals/Documents/Cost-Of-Living-In-Beirut.pdf")

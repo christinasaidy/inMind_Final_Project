@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
@@ -6,18 +5,25 @@ import json
 from langchain_core.messages import AIMessage, ToolMessage
 from complex_langgraph.graph import purr as graph
 from typing import Dict, Any
+from pathlib import Path
+from langchain_community.utilities import SQLDatabase
+from fastapi import HTTPException
+import sqlite3
 
 api = FastAPI() 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DB_DIR = PROJECT_ROOT / "databases"
+DB_PATH = DB_DIR / "receipts.db"
 
-##helper functions from chatgpt to print AI MESSAGE
+db = SQLDatabase.from_uri(f"sqlite:///{DB_PATH}")
+
 
 def _looks_like_dump(s: str) -> bool:
     s = (s or "").lstrip()
     return s.startswith("{'messages':") or s.startswith('{"messages":')
 
 def _is_route_note(s: str) -> bool:
-    # e.g., "[route=query_node] ..."
     s = (s or "").strip()
     return s.startswith("[route=") and "]" in s
 
@@ -28,7 +34,6 @@ def _extract_final_text(state: Dict[str, Any]) -> str:
 
             if getattr(m, "name"):
                 continue
-            # Skip tool-calling messages
             if getattr(m, "tool_calls"):
                 continue
             if isinstance(m.content, str):
@@ -36,30 +41,23 @@ def _extract_final_text(state: Dict[str, Any]) -> str:
                 if content and not _looks_like_dump(content) and not _is_route_note(content):
                     return content
 
-    # 2) Fall back to node results you stored in state
     for key in ("query_result", "rag_result"):
         v = state.get(key)
         if isinstance(v, dict):
             content = v.get("content")
             if isinstance(content, str) and content.strip():
                 if not _looks_like_dump(content):
-                    # A simple, clean string in query/rag result
                     return content.strip()
                 else:
-                    # Try to extract the last human-readable AIMessage from the dump
                     import re
-                    # Capture the last AIMessage(content='...') snippet
-                    # NOTE: this is a best-effort parser for the repr you showed
                     pattern = r"AIMessage\(content='(.*?)',"
                     matches = re.findall(pattern, content, flags=re.DOTALL)
                     if matches:
-                        # Prefer the last non-empty, non-route match
                         for cand in reversed(matches):
                             cand_clean = (cand or "").strip()
                             if cand_clean and not _is_route_note(cand_clean):
                                 return cand_clean
 
-    # 3) Last resort: any AI message that looks decent and is not a route note
     for m in reversed(messages):
         if isinstance(m, AIMessage) and isinstance(m.content, str):
             cand = m.content.strip()
@@ -70,15 +68,34 @@ def _extract_final_text(state: Dict[str, Any]) -> str:
 class ChatInput(BaseModel):
     messages: list[str]
 
+
 @api.post("/chat")
 async def chat(input: ChatInput):
-    
     msgs = []
     for msg in input.messages:
         msgs.append(("user", msg))
 
     state = await graph.ainvoke({"messages": msgs})
-
     final_text = _extract_final_text(state)
     return final_text
 
+
+@api.get("/receipts/last")
+def get_last_receipt():
+    if not DB_PATH.exists():
+        raise HTTPException(status_code=404, detail=f"Database not found at {DB_PATH}")
+
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM receipts ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="No rows in 'receipts' table.")
+
+        return dict(row)
+
+
+if __name__ == "__main__":
+    uvicorn.run("app.main:api", host="0.0.0.0", port=8001, reload=True)

@@ -12,15 +12,22 @@ from langchain_community.tools.sql_database.tool import (
 )
 from datetime import datetime
 from sqlalchemy import create_engine
+from pathlib import Path
 
 load_dotenv()
 
 #refernce : "https://medium.com/@ayush4002gupta/building-an-llm-agent-to-directly-interact-with-a-database-0c0dd96b8196"
 
 
-mcp = FastMCP("query-agent")
+mcp = FastMCP("query-server", host="127.0.0.1", port=9002)
 
-db = SQLDatabase.from_uri("sqlite:///C:/Users/saidy/OneDrive/Desktop/Smart_Receipt_Assistant/receipts.db")  
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DB_DIR = PROJECT_ROOT / "databases"
+DB_PATH = DB_DIR / "receipts.db"
+
+
+db = SQLDatabase.from_uri(f"sqlite:///{DB_PATH}")
 
 @mcp.tool()
 def get_current_date() -> str:
@@ -50,8 +57,7 @@ def execute_sql(sql_query: str) -> str:
 
 
 if __name__ == "__main__":
-
-     mcp.run(transport='stdio')
+    mcp.run(transport="streamable-http")
 
 
 

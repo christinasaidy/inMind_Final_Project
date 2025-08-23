@@ -1,7 +1,11 @@
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, Date, ForeignKey
+from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DB_DIR = PROJECT_ROOT / "databases"
+DB_PATH = DB_DIR / "receipts.db"
 
-engine = create_engine("sqlite:///C:/Users/saidy/OneDrive/Desktop/hehe/receipts.db", echo=True)
+engine = create_engine(f"sqlite:///{DB_PATH}")
 
 
 metadata = MetaData()

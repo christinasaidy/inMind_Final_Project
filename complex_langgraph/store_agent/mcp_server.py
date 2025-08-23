@@ -6,12 +6,22 @@ from sqlalchemy import MetaData, Table
 from mcp.server.fastmcp import FastMCP
 from typing import Dict, Any, List
 from sqlalchemy import inspect
+from langchain_community.utilities import SQLDatabase
+from sqlalchemy import create_engine
+from pathlib import Path
 
 
+mcp = FastMCP("store-server", host="127.0.0.1", port=9000)
 
-mcp = FastMCP("storage-agent")
+#load db
 
-db = create_engine("sqlite:///C:/Users/saidy/OneDrive/Desktop/Smart_Receipt_Assistant/receipts.db")  
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DB_DIR = PROJECT_ROOT / "databases"
+DB_PATH = DB_DIR / "receipts.db"
+
+db = create_engine(f"sqlite:///{DB_PATH}")  
+
+
 # inspector = inspect(db) 
 # print("HELOOOOOOOOOOOOOOOO")
 # print(inspector.get_table_names())
@@ -58,7 +68,7 @@ def insert_receipt(data: Dict[str, Any]) -> Dict[str, Any]:
     return {"status": "ok", "receipt_id": receipt_id, "items_inserted": len(items)}
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    mcp.run(transport="streamable-http")
 
 #references : 
 # https://sibabalwesinyaniso.medium.com/inserting-data-into-sqlite-using-sqlalchemy-core-9132772154e3

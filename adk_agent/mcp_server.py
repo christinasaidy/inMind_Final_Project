@@ -16,7 +16,7 @@ if not AZURE_KEY or not AZURE_ENDPOINT:
     raise RuntimeError(".env variables AZURE_KEY and AZURE_ENDPOINT must be set correctly.")
 
 
-mcp = FastMCP("receipt-ocr")
+mcp = FastMCP("receipt-ocr", host="127.0.0.1", port=9003)
 
 @mcp.tool()
 def get_current_date() -> str:
@@ -133,7 +133,6 @@ def ocr_read(image_url: str = None, image_path: str = None, timeout_seconds: int
 
 
 if __name__ == "__main__":
-    mcp.run()
-
+    mcp.run(transport="streamable-http")
 
 
