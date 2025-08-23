@@ -56,7 +56,7 @@ This fixed the issue of the user typing a slighty different name than whats stor
 
 An initial problem with my graph implementation was using  the `goto command` in langgraph for routing as well as also using static edges. This was a logical error in my code because the goto command aims to replace static edges so this didnt make any sense having them both.
 
-In my nodes you can also see different methods i tried for tool integration. The store agent, manually invokes each tool call made by the model. It loops over each tool name and manually adds a `ToolMessage`. In the rag node, i explored langgraphs built in `ToolNode` that also invokes the tools using a loop, it defines `ToolMessage` for you . In the query agent, i tried the built in `create_react_agent` that automatatically does tool calls without doing anything manually. All three methods work the same and effectively.
+In my nodes you can also see different methods i tried for tool integration. The store agent, manually invokes each tool call made by the model. It loops over each tool name and manually adds a `ToolMessage`. In the rag node, i explored langgraphs built in `ToolNode` that also invokes the tools using a loop, it defines `ToolMessage` for you . In the query agent, i tried the built in `create_react_agent` that automatically does tool calls without doing anything manually. All three methods work the same and effectively.
 
 
 ### Incomplete Task in Graph:
